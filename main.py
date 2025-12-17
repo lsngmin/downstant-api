@@ -6,7 +6,7 @@ from database import get_db, engine
 import models, schemas
 from MediaUrlRequest import UrlContainer
 
-# models.Base.metadata.create_all(bind=engine)
+models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
 @app.post("/extract")
