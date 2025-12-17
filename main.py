@@ -5,9 +5,23 @@ from sqlalchemy.orm import Session
 from database import get_db, engine
 import models, schemas
 from MediaUrlRequest import UrlContainer
-
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI, Request, Depends
 models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
+templates = Jinja2Templates(directory="templates")
+
+@app.get("/privacy", response_class=HTMLResponse)
+async def get_privacy(request: Request):
+    return templates.TemplateResponse("privacy.html", {"request": request})
+
+# 2. 관리자 페이지 (DB에서 데이터 읽어서 보여줌)
+@app.get("/admin/contacts", response_class=HTMLResponse)
+async def admin_page(request: Request, db: Session = Depends(get_db)):
+    # DB에서 최신순으로 문의사항 50개 가져오기
+    contacts = db.query(models.Contact).order_by(models.Contact.created_at.desc()).limit(50).all()
+    return templates.TemplateResponse("admin.html", {"request": request, "contacts": contacts})
 
 @app.post("/extract")
 async def extract_twitter_media(request: UrlContainer):
