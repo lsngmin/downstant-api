@@ -12,6 +12,9 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
+@app.get("/support", response_class=HTMLResponse)
+async def get_support(request: Request):
+    return templates.TemplateResponse("support.html", {"request": request})
 @app.get("/privacy", response_class=HTMLResponse)
 async def get_privacy(request: Request):
     return templates.TemplateResponse("privacy.html", {"request": request})
