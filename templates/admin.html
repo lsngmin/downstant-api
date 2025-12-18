@@ -2,36 +2,158 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Admin - 문의 내역</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Downstant Admin - 문의 내역</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     <style>
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f4f4f4; }
+        :root {
+            --primary-color: #007AFF;
+            --bg-color: #F5F5F7;
+            --card-bg: #ffffff;
+            --text-main: #1D1D1F;
+            --text-sub: #86868B;
+            --border-color: #D2D2D7;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1100px;
+        }
+
+        header {
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .badge {
+            background: var(--primary-color);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* 테이블 스타일 */
+        .table-container {
+            background: var(--card-bg);
+            border-radius: 18px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th {
+            background-color: #FAFAFB;
+            padding: 16px;
+            font-size: 13px;
+            color: var(--text-sub);
+            font-weight: 600;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 20px 16px;
+            font-size: 15px;
+            border-bottom: 1px solid #F0F0F2;
+            vertical-align: top;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background-color: #F9F9FB; }
+
+        /* 특정 컬럼 강조 */
+        .email-cell {
+            color: var(--primary-color);
+            font-weight: 500;
+            text-decoration: none;
+        }
+
+        .content-cell {
+            line-height: 1.5;
+            white-space: pre-wrap; /* 줄바꿈 유지 */
+            max-width: 400px;
+        }
+
+        .info-tag {
+            display: inline-block;
+            background: #E8E8ED;
+            color: #515154;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .date-cell {
+            color: var(--text-sub);
+            font-size: 13px;
+        }
     </style>
 </head>
 <body>
-    <h1>📩 사용자 문의 내역</h1>
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>User UID</th>
-                <th>내용</th>
-                <th>기기정보</th>
-                <th>날짜</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for contact in contacts %}
-            <tr>
-                <td>{{ contact.id }}</td>
-                <td>{{ contact.user_uid }}</td>
-                <td>{{ contact.content }}</td>
-                <td>{{ contact.device_info }} ({{ contact.app_version }})</td>
-                <td>{{ contact.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="container">
+        <header>
+            <h1>📩 사용자 문의 내역</h1>
+            <span class="badge">최신 50건</span>
+        </header>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>회신 이메일</th>
+                        <th>문의 내용</th>
+                        <th>기기 및 정보</th>
+                        <th>날짜</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for contact in contacts %}
+                    <tr>
+                        <td>{{ contact.id }}</td>
+                        <td>
+                            <a href="mailto:{{ contact.email }}" class="email-cell">{{ contact.email }}</a>
+                            <div style="font-size: 11px; color: #B0B0B5; margin-top: 4px;">UID: {{ contact.user_id[:8] }}...</div>
+                        </td>
+                        <td class="content-cell">{{ contact.content }}</td>
+                        <td>
+                            <div style="font-weight: 500;">{{ contact.device_info }}</div>
+                            <div class="info-tag">iOS {{ contact.os_version }}</div>
+                        </td>
+                        <td class="date-cell">{{ contact.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </body>
 </html>

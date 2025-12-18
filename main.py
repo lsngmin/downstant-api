@@ -88,9 +88,10 @@ async def receive_contact(
         # 3. DB 모델 객체 생성
         new_contact = models.Contact(
             user_id=request.user_id,
+            email=request.email,
+            content=request.content,
             device_info=request.device_info,
             os_version=request.os_version,
-            content=request.content
         )
 
         # 4. DB에 저장 및 커밋

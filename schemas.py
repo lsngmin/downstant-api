@@ -20,6 +20,7 @@ class PurchaseRequest(BaseModel):
 
 class ContactRequest(BaseModel):
     user_id: Optional[str] = "anonymous" # 유저 식별용 (필요시)
+    email: str
     content: str                         # 문의 내용
     device_info: str                     # 기기 모델 (예: iPhone 15 Pro)
     os_version: str                      # iOS 버전

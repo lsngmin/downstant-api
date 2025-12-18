@@ -52,7 +52,7 @@ class User(Base):
 
 class Contact(Base):  # <--- 이 이름이 'Contact'여야 합니다.
     __tablename__ = "tbl_contact"
-
+    email = Column(String)
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(String)
     device_info = Column(String)
