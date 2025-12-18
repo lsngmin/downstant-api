@@ -1,8 +1,9 @@
-from sqlalchemy import Column, String, DateTime, Text, Boolean
+from sqlalchemy import Column, String, DateTime, Text, Boolean, Integer
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 import datetime
 from database import Base
+from sqlalchemy.sql import func
 
 class User(Base):
     __tablename__ = "tbl_user"
@@ -48,3 +49,13 @@ class User(Base):
         ),
         default      = datetime.datetime.utcnow
     )
+
+class Contact(Base):  # <--- 이 이름이 'Contact'여야 합니다.
+    __tablename__ = "tbl_contact"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String)
+    device_info = Column(String)
+    os_version = Column(String)
+    content = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
