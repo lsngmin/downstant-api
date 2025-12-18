@@ -77,23 +77,39 @@ async def extract_twitter_media(request: UrlContainer):
 
 
 @app.post("/api/v1/contact")
-async def receive_contact(request: schemas.ContactRequest):
-    # 2. 전송된 데이터 확인 (콘솔 로그)
-    print("\n" + "=" * 30)
-    print(f"📩 새로운 문의 접수!")
-    print(f"👤 유저: {request.user_id}")
-    print(f"📱 기기: {request.device_info} (iOS {request.os_version})")
-    print(f"📄 내용: {request.content}")
-    print("=" * 30 + "\n")
+async def receive_contact(
+    request: schemas.ContactRequest,
+    db: Session = Depends(get_db)  # 1. DB 세션 주입 추가
+):
+    # 2. 콘솔 로그 (확인용)
+    print(f"📩 문의 접수 시작: {request.user_id}")
 
-    # 3. 비즈니스 로직 (지금은 바로 성공 응답)
-    # 나중에 여기에 DB 저장(SQLAlchemy)이나 슬랙 알림 연동을 추가하면 됩니다.
+    try:
+        # 3. DB 모델 객체 생성
+        new_contact = models.Contact(
+            user_id=request.user_id,
+            device_info=request.device_info,
+            os_version=request.os_version,
+            content=request.content
+        )
 
-    return {
-        "status": "success",
-        "message": "문의가 서버에 정상적으로 접수되었습니다.",
-        "received_data": request.dict()  # 확인용으로 받은 데이터를 다시 쏴줌
-    }
+        # 4. DB에 저장 및 커밋
+        db.add(new_contact)
+        db.commit()
+        db.refresh(new_contact) # 저장된 후 생성된 ID 등을 다시 읽어옴
+
+        print(f"✅ DB 저장 완료: ID {new_contact.id}")
+
+        return {
+            "status": "success",
+            "message": "문의가 DB에 안전하게 저장되었습니다.",
+            "id": new_contact.id
+        }
+
+    except Exception as e:
+        db.rollback() # 에러 발생 시 진행 중인 작업 취소
+        print(f"❌ DB 저장 실패: {str(e)}")
+        raise HTTPException(status_code=500, detail="서버 DB 저장 중 오류가 발생했습니다.")
 
 if __name__ == "__main__":
     import uvicorn
