@@ -8,6 +8,7 @@ from MediaUrlRequest import UrlContainer
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi import FastAPI, Request, Depends
+from urllib.parse import urlparse
 models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -73,6 +74,131 @@ async def extract_twitter_media(request: UrlContainer):
 
     except Exception as e:
         print(f"❌ 상세 에러: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"추출 실패: {str(e)}")
+
+
+def _normalize_url(raw_url: str) -> str:
+    cleaned = raw_url.strip()
+    if "://" not in cleaned:
+        return f"https://{cleaned}"
+    return cleaned
+
+
+def _is_tiktok_url(raw_url: str) -> bool:
+    try:
+        parsed = urlparse(raw_url)
+    except Exception:
+        return False
+    host = (parsed.netloc or "").lower()
+    return host.endswith("tiktok.com") or host.endswith("tiktokv.com")
+
+
+def _build_format_entry(fmt: dict) -> dict:
+    height = fmt.get("height")
+    width = fmt.get("width")
+    fps = fmt.get("fps")
+    tbr = fmt.get("tbr")
+    vbr = fmt.get("vbr")
+    size = fmt.get("filesize") or fmt.get("filesize_approx")
+
+    label_parts = []
+    if height:
+        label_parts.append(f"{height}p")
+    elif width and height:
+        label_parts.append(f"{width}x{height}")
+    if fps:
+        label_parts.append(f"{int(fps)}fps" if isinstance(fps, (int, float)) else f"{fps}fps")
+    bitrate = tbr or vbr
+    if bitrate:
+        label_parts.append(f"{round(bitrate)}kbps")
+    if size:
+        size_mb = size / (1024 * 1024)
+        label_parts.append(f"{size_mb:.1f}MB")
+
+    return {
+        "url": fmt.get("url"),
+        "format_id": fmt.get("format_id"),
+        "ext": fmt.get("ext"),
+        "width": width,
+        "height": height,
+        "fps": fps,
+        "tbr": tbr,
+        "vbr": vbr,
+        "filesize": size,
+        "label": " ".join(label_parts) or "MP4",
+    }
+
+
+def _extract_download_urls(info: dict) -> list[dict]:
+    urls = []
+    seen = set()
+    formats = info.get("formats") or []
+    for fmt in formats:
+        url = fmt.get("url")
+        if not url:
+            continue
+        if fmt.get("ext") != "mp4":
+            continue
+        protocol = (fmt.get("protocol") or "").lower()
+        if "m3u8" in protocol or "dash" in protocol:
+            continue
+        if url.endswith(".m3u8"):
+            continue
+        if url in seen:
+            continue
+        urls.append(_build_format_entry(fmt))
+        seen.add(url)
+
+    if not urls:
+        url = info.get("url")
+        if url and info.get("ext") == "mp4" and not url.endswith(".m3u8"):
+            return [_build_format_entry(info)]
+
+    urls.sort(
+        key=lambda item: (item.get("height") or 0, item.get("tbr") or 0),
+        reverse=True,
+    )
+    return [urls[0]] if urls else []
+
+
+@app.post("/extract/tiktok")
+async def extract_tiktok_media(request: UrlContainer):
+    raw_url = _normalize_url(request.url)
+    if not _is_tiktok_url(raw_url):
+        raise HTTPException(status_code=400, detail="TikTok URL만 지원합니다.")
+
+    ydl_opts = {
+        "format": "best",
+        "quiet": False,
+        "no_warnings": False,
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+            "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Referer": "https://www.tiktok.com/",
+        },
+    }
+
+    try:
+        loop = asyncio.get_event_loop()
+
+        def get_info():
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                return ydl.extract_info(raw_url, download=False)
+
+        info = await loop.run_in_executor(None, get_info)
+        download_urls = _extract_download_urls(info)
+        if not download_urls:
+            raise Exception("다운로드 가능한 주소를 찾지 못했습니다.")
+
+        return {
+            "status": "success",
+            "title": info.get("title"),
+            "thumbnail": info.get("thumbnail"),
+            "duration": info.get("duration"),
+            "download_urls": download_urls,
+        }
+    except Exception as e:
         raise HTTPException(status_code=400, detail=f"추출 실패: {str(e)}")
 
 
