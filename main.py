@@ -165,7 +165,7 @@ def _extract_download_urls(info: dict) -> list[dict]:
 async def extract_tiktok_media(request: UrlContainer):
     raw_url = _normalize_url(request.url)
     if not _is_tiktok_url(raw_url):
-        raise HTTPException(status_code=400, detail="TikTok URL만 지원합니다.")
+        raise HTTPException(status_code=400, detail="Only TikTok URLs are supported.")
 
     ydl_opts = {
         "format": "best",
